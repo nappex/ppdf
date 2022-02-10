@@ -73,16 +73,25 @@ printf "[ERROR] $0: $dirpath is not exist or not a directory\n"
 exit 1
 fi
 
-# just another approach how to handle task
 # find $dirpath -iname '*.pdf' | xargs -n 1 echo lp
 
-echo Used printer: [$(lpstat -d | grep -o '[^ ]\+$')];
+echo Used printer: [$(lpstat -d | grep -o '[^[:space:]]\+$')];
 echo Start printing pdf files
 
-for file in $(find $dirpath -iname '*.pdf'); do
-    # sleep is used because of printer. When more tasks are given,
-    # the printer lagged. Then the restart is necessary.
-    sleep 2;
-    echo PRINTING... $file;
-    lp $file;
-done
+# IFS= makes sure it doesn't trim leading and trailing whitespace
+
+# -r prevents interpretation of \ escapes.
+
+# -d '' is better than -d $'\0'. The latter is not only longer but
+# also suggests that you could pass arguments containing null bytes, but you cannot.
+# -d delimiter
+
+find $dirpath -iname "*.pdf" -print0 |
+    while IFS= read -r -d '' file
+    do
+        # sleep is used because of printer. When more tasks are given,
+        # he printer lagged. Then the restart is necessary.
+        sleep 1;
+        echo PRINTING... $file;
+        lp $file;
+    done
